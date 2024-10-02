@@ -1,0 +1,207 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import backgroundImage from "../wallpaper/landing-page-wallpaper.jpg";
+import AlertModal from "./modals/AlertModal";
+import {
+  faCheckCircle,
+  faExclamationCircle,
+} from "@fortawesome/free-solid-svg-icons";
+
+const Signup = () => {
+  const [userName, setuserName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [alertType, setAlertType] = useState("");
+
+  const handleCloseErrorModal = () => {
+    setIsAlertModalOpen(false);
+    setMessage("");
+  };
+
+  const navigate = useNavigate();
+
+  const validateEmail = (email: string) => {
+    const re = /\S+@\S+\.\S+/;
+    return email.length && re.test(email);
+  };
+
+  const validatePassword = (password: string) => {
+    // at least 6 characters
+    const re = /.{6,}/;
+    return re.test(password);
+  };
+
+  const isFormFilled = (userName: string, email: string, password: string) => {
+    return (
+      userName.length && validateEmail(email) && validatePassword(password)
+    );
+  };
+
+  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = event.target.value;
+    setEmail(newEmail);
+
+    if (!validateEmail(newEmail)) {
+      setEmailError("Invalid email format");
+    } else {
+      setEmailError("");
+    }
+  };
+
+  const handlePasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = event.target.value;
+    setPassword(newPassword);
+
+    if (!validatePassword(newPassword)) {
+      setPasswordError("Password must be at least 6 characters");
+    } else {
+      setPasswordError("");
+    }
+  };
+
+  const isStrong = (password: string) => {
+    // at least 6 characters && at least 1 number && at least 1 uppercase
+    const re = /(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}/;
+    return re.test(password);
+  };
+
+  const handleSignup = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (emailError || passwordError) {
+      setIsAlertModalOpen(true);
+      setMessage("Please correct the errors before submitting.");
+      return;
+    }
+
+    fetch("http://localhost:8080/api/users", {
+      method: "POST",
+      body: JSON.stringify({ userName, email, password }),
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.statusCode === 400) {
+          setMessage(data.message);
+          setAlertType("error");
+          setIsAlertModalOpen(true);
+          return;
+        }
+
+        setMessage("Account created successfully");
+        setAlertType("success");
+        setIsAlertModalOpen(true);
+        navigate("/login");
+      });
+  };
+
+  return (
+    <div
+      className="bg-cover h-screen flex flex-col items-center justify-center"
+      style={{
+        backgroundImage: `url(${backgroundImage})`,
+      }}
+    >
+      <form
+        onSubmit={handleSignup}
+        className="bg-gray-800 bg-opacity-50 text-white rounded-lg p-8"
+      >
+        <div className="mb-4">
+          <label
+            className="block text-gray-200 px-3 text-sm font-bold mb-2"
+            htmlFor="userName"
+          >
+            Username
+          </label>
+          <input
+            className="shadow appearance-none border rounded-full w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-[#1a1a1a]"
+            id="userName"
+            type="text"
+            placeholder="Username"
+            value={userName}
+            onChange={(event) => setuserName(event.target.value)}
+          />
+        </div>
+        <div className="mb-4">
+          <label
+            className="block text-gray-200 px-3 text-sm font-bold mb-2"
+            htmlFor="email"
+          >
+            Email
+          </label>
+          <input
+            className="shadow appearance-none border rounded-full w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-[#1a1a1a]"
+            id="email"
+            type="text"
+            placeholder="Email"
+            value={email}
+            onChange={handleEmailChange}
+          />
+          {emailError && (
+            <p className="text-red-500 px-3 text-xs italic">{emailError}</p>
+          )}
+        </div>
+        <div className="mb-6">
+          <label
+            className="block text-gray-200 px-3 text-sm font-bold mb-2"
+            htmlFor="password"
+          >
+            Password
+          </label>
+          <input
+            className="shadow appearance-none border rounded-full w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-[#1a1a1a]"
+            id="password"
+            type="password"
+            placeholder="******"
+            value={password}
+            onChange={handlePasswordChange}
+          />
+          {passwordError && (
+            <p className="text-red-500 px-3 text-xs italic">{passwordError}</p>
+          )}
+          {password.length > 0 && (
+            <p className="text-gray-400 px-3 text-xs italic">
+              Password strength:{" "}
+              {isStrong(password) ? (
+                <span className="text-green-500">Strong</span>
+              ) : (
+                <span className="text-red-500">Weak</span>
+              )}
+            </p>
+          )}
+        </div>
+        <div className="flex justify-between items-center space-x-4">
+          <button
+            className="bg-green-500 hover:bg-green-700 border rounded-full text-white font-bold py-2 px-4  focus:outline-none focus:shadow-outline"
+            type="submit"
+            disabled={!isFormFilled(userName, email, password)}
+          >
+            Sign Up
+          </button>
+          <Link
+            to="/login"
+            className="inline-block align-baseline font
+                        bold text-sm text-green-500 hover:text-green-800"
+          >
+            Already have an account?
+          </Link>
+        </div>
+      </form>
+      <AlertModal
+        show={isAlertModalOpen}
+        onHide={handleCloseErrorModal}
+        messages={[message] ?? []}
+        color={alertType === "error" ? "red" : "green"}
+        icon={alertType === "error" ? faExclamationCircle : faCheckCircle}
+      />
+    </div>
+  );
+};
+
+export default Signup;
